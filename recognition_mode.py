@@ -1,3 +1,4 @@
+# ✅ recognition_mode.py (modified to auto-save activity every 10 seconds)
 import cv2
 import mediapipe as mp
 import time
@@ -14,6 +15,7 @@ def start_motion_activity_system(mode="Activity"):
     video = cv2.VideoCapture(0)
     last_activity = None
     activity_start_time = time.time()
+    last_save_time = time.time()
 
     standing_time = sitting_time = head_down_time = hands_up_time = 0
     sleeping_time = using_phone_time = absent_time = 0
@@ -36,15 +38,11 @@ def start_motion_activity_system(mode="Activity"):
             left_eye_bottom = face_landmarks[23]
             right_eye_top = face_landmarks[386]
             right_eye_bottom = face_landmarks[374]
-
-            def ear(top, bottom):
-                return abs(top.y - bottom.y)
-
+            def ear(top, bottom): return abs(top.y - bottom.y)
             left_ear = ear(left_eye_top, left_eye_bottom)
             right_ear = ear(right_eye_top, right_eye_bottom)
             eye_closed = left_ear < 0.035 and right_ear < 0.035
             low_motion = len(motion) >= 20 and sum(motion[-20:]) / 20 < 0.015
-
             return eye_closed and low_motion
         except:
             return False
@@ -58,16 +56,11 @@ def start_motion_activity_system(mode="Activity"):
             right_wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value]
             left_elbow = landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value]
             right_elbow = landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value]
-
-            def dist(p1, p2):
-                return ((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) ** 0.5
-
+            def dist(p1, p2): return ((p1.x - p2.x)**2 + (p1.y - p2.y)**2)**0.5
             lw_dist = dist(left_wrist, nose)
             rw_dist = dist(right_wrist, nose)
-
             lw_up = left_wrist.y < left_elbow.y
             rw_up = right_wrist.y < right_elbow.y
-
             return (lw_dist < 0.3 and lw_up) or (rw_dist < 0.3 and rw_up)
         except:
             return False
@@ -75,7 +68,6 @@ def start_motion_activity_system(mode="Activity"):
     def detect_activity(landmarks, face_landmarks):
         nonlocal prev_landmarks, phone_detection_counter, sleeping_detection_counter
         nonlocal body_motion_history, debug_counter
-
         if landmarks is None:
             return "No Person Detected"
 
@@ -99,7 +91,6 @@ def start_motion_activity_system(mode="Activity"):
 
         debug_counter += 1
 
-        # Phone detection
         if is_using_phone(landmarks, face_landmarks):
             phone_detection_counter += 1
             if phone_detection_counter > 15:
@@ -107,13 +98,8 @@ def start_motion_activity_system(mode="Activity"):
         else:
             phone_detection_counter = max(0, phone_detection_counter - 2)
 
-        # Motion tracking
         if prev_landmarks:
-            motion = sum(
-                abs(landmarks[i].x - prev_landmarks[i].x) +
-                abs(landmarks[i].y - prev_landmarks[i].y)
-                for i in range(len(landmarks))
-            ) / len(landmarks)
+            motion = sum(abs(landmarks[i].x - prev_landmarks[i].x) + abs(landmarks[i].y - prev_landmarks[i].y) for i in range(len(landmarks))) / len(landmarks)
             body_motion_history.append(motion)
             if len(body_motion_history) > 30:
                 body_motion_history.pop(0)
@@ -122,7 +108,6 @@ def start_motion_activity_system(mode="Activity"):
 
         prev_landmarks = landmarks
 
-        # Sleeping detection
         if is_sleeping(face_landmarks, body_motion_history):
             sleeping_detection_counter += 3
             if debug_counter % debug_frequency == 0:
@@ -164,7 +149,6 @@ def start_motion_activity_system(mode="Activity"):
 
         if landmarks:
             activity = detect_activity(landmarks, face_landmarks)
-
             current_time = time.time()
             if last_activity and last_activity != activity:
                 duration = current_time - activity_start_time
@@ -205,31 +189,22 @@ def start_motion_activity_system(mode="Activity"):
                 cv2.putText(frame, "FINAL WARNING!!", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
                 cv2.putText(frame, f"Absence Timer: {timer}s", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
-        # Display label
-        
         color = (255, 255, 255)
-        if activity == "Sleeping":
-            color = (0, 0, 255)
-        elif activity == "Using Phone":
-            color = (255, 0, 255)
-        elif activity == "Head Down":
-            color = (0, 165, 255)
+        if activity == "Sleeping": color = (0, 0, 255)
+        elif activity == "Using Phone": color = (255, 0, 255)
+        elif activity == "Head Down": color = (0, 165, 255)
 
         cv2.putText(frame, activity, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
 
-        # ✅ Show sleep counter on screen (debug)
         if activity == "Sleeping":
-            cv2.putText(frame, f"Sleep Counter: {sleeping_detection_counter}/90", 
-                        (10, frame.shape[0] - 50), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            cv2.putText(frame, f"Sleep Counter: {sleeping_detection_counter}/90", (10, frame.shape[0] - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-        cv2.putText(frame, "Press 'b' to return", (10, frame.shape[0] - 20), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
+        cv2.putText(frame, "Press 'b' to return", (10, frame.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
 
         cv2.imshow("Activity Recognition", frame)
 
-
-        if cv2.waitKey(1) & 0xFF == ord('b'):
+        # ✅ Auto-save every 10 seconds
+        if time.time() - last_save_time > 10:
             now = datetime.now().strftime("%Y-%m-%d")
             if standing_time > 0: activity_data.loc[len(activity_data)] = [now, "Standing", standing_time]
             if sitting_time > 0: activity_data.loc[len(activity_data)] = [now, "Sitting", sitting_time]
@@ -238,6 +213,10 @@ def start_motion_activity_system(mode="Activity"):
             if sleeping_time > 0: activity_data.loc[len(activity_data)] = [now, "Sleeping", sleeping_time]
             if using_phone_time > 0: activity_data.loc[len(activity_data)] = [now, "Using Phone", using_phone_time]
             if absent_time > 0: activity_data.loc[len(activity_data)] = [now, "Absent", absent_time]
+            save_activity_data()
+            last_save_time = time.time()
+
+        if cv2.waitKey(1) & 0xFF == ord('b'):
             return_to_menu()
             break
 

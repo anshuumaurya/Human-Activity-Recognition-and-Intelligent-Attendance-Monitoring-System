@@ -49,7 +49,7 @@ def main_menu():
         return btn
 
     create_button("Start Activity Recognition", lambda: [menu_window.destroy(), start_motion_activity_system("Activity")]).pack(pady=10)
-    create_button("Start Total People Counter", lambda: [menu_window.destroy(), start_total_people_counter()]).pack(pady=10)
+    create_button("Start Total People Counter", lambda: [menu_window.withdraw(), start_total_people_counter(menu_window)]).pack(pady=10)
     create_button("Start Attendance System", lambda: [menu_window.destroy(), start_attendance_system()]).pack(pady=10)
     create_button("Open Analytics Dashboard", lambda: [menu_window.destroy(), activity_analytics_dashboard()]).pack(pady=10)
 

@@ -5,10 +5,12 @@ import numpy as np
 from datetime import datetime
 import pandas as pd
 
-# Set correct path for known faces
+
+# Paths
 KNOWN_PATH = "images"
 UNAUTHORIZED_LOG = "Unauthorized_Log.csv"
 ATTENDANCE_LOG = "Attendance.csv"
+ACTIVITY_LOG = "activity_data.csv"
 
 # Load known faces
 def load_known_faces(path):
@@ -24,7 +26,7 @@ def load_known_faces(path):
                 known_names.append(name)
     return known_encodings, known_names
 
-# Mark attendance
+# Mark attendance in CSV
 def mark_attendance(name):
     now = datetime.now()
     dt_string = now.strftime('%Y-%m-%d %H:%M:%S')
@@ -37,7 +39,7 @@ def mark_attendance(name):
         if name not in names_recorded:
             f.write(f'{name},{dt_string}\n')
 
-# Log unauthorized entry
+# Log unauthorized access
 def log_unauthorized_entry(face_image):
     now = datetime.now()
     timestamp = now.strftime('%Y-%m-%d %H:%M:%S')
@@ -50,7 +52,21 @@ def log_unauthorized_entry(face_image):
     else:
         df.to_csv(UNAUTHORIZED_LOG, mode='a', header=False, index=False)
 
-# Main attendance function
+# Log attendance activity in dashboard CSV
+def log_attendance_activity(name):
+    now = datetime.now()
+    date_str = now.strftime('%Y-%m-%d')
+    activity_entry = pd.DataFrame([{
+        "Date": date_str,
+        "Activity": f"Attendance: {name}",
+        "Duration (s)": 0
+    }])
+    if os.path.exists(ACTIVITY_LOG):
+        activity_entry.to_csv(ACTIVITY_LOG, mode='a', header=False, index=False)
+    else:
+        activity_entry.to_csv(ACTIVITY_LOG, mode='w', header=True, index=False)
+
+# Start the face recognition attendance system
 def start_attendance_system():
     print("[INFO] Starting Attendance System")
     known_encodings, known_names = load_known_faces(KNOWN_PATH)
@@ -83,18 +99,26 @@ def start_attendance_system():
 
             if name != "Unknown":
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-                cv2.putText(frame, f"Authorized: {name}", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                cv2.putText(frame, f"Authorized: {name}", (left, top - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
                 mark_attendance(name)
+                log_attendance_activity(name)  # ✅ Log activity to dashboard
             else:
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-                cv2.putText(frame, "Unauthorized Intrusion!", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+                cv2.putText(frame, "Unauthorized Intrusion!", (left, top - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
                 log_unauthorized_entry(face_crop)
 
-        cv2.putText(frame, "Press 'b' to return to menu", (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        cv2.putText(frame, "Press 'b' to return to menu", (10, frame.shape[0] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
         cv2.imshow("Face Attendance System", frame)
 
-        if cv2.waitKey(1) & 0xFF == ord('b'):
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('b'):
             break
 
     cap.release()
     cv2.destroyAllWindows()
+    from main_menu import main_menu 
+    main_menu()  # ✅ Return to main menu after camera closes
