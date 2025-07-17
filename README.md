@@ -1,0 +1,1 @@
+# Human-Activity-Recognition-and-Intelligent-Attendance-Monitoring-System
