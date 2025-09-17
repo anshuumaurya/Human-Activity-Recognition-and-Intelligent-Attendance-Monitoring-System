@@ -1,3 +1,6 @@
+# Problem Statement
+Traditional attendance systems are manual and prone to proxy attendance. Workplace productivity monitoring requires constant supervision. This system automates attendance tracking with face recognition and provides real-time activity monitoring for enhanced security and productivity.
+
 # Human-Activity-Recognition-and-Intelligent-Attendance-Monitoring-System
 A full-featured Python-based intelligent surveillance system that combines face recognition, human activity detection, attendance logging, and analytics visualization — all in one place.
 This project is ideal for employee or student tracking, performance monitoring, and secure workplace access.
@@ -15,7 +18,18 @@ This project is ideal for employee or student tracking, performance monitoring, 
 | FPDF                | Export reports to PDF                    |
 | Scikit-learn        | Confusion matrix, accuracy metrics       |
 
+# How to Run
+# Requirements
+- Python 3.7+
+- Webcam access
 
+# Setup
+1. Clone this repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Add known face images in `images/` folder
+4. Run: `python run.py`
+5. Login: admin/password
+   
 # System Modules 
 # 1. Admin Login Interface
 File: login_page.py
